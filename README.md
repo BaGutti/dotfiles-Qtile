@@ -26,6 +26,6 @@ Installing the config:
 ```bash
 cp -r dotfiles ~/.config/
 ```
-Make necessarie changes in `.config/qtile/config.py`
+Make the necessary changes in `.config/qtile/config.py`
 
 ### This is not the final state of the dotfiles. I will be updating the branch with the dotfiles!
