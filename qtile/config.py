@@ -1,521 +1,464 @@
-# -*- coding: utf-8 -*-
-from distutils.spawn import spawn
-from libqtile.dgroups import simple_key_binder
-import os
-import re
-import socket
-import subprocess
+from typing import List  # noqa: F401
 from libqtile import qtile
-from libqtile.config import Click, Drag, Group, KeyChord, Key, Match, Screen
-from libqtile.command import lazy
-from libqtile import layout, bar, widget, hook
+from libqtile import bar, layout, widget, hook
+from libqtile.config import Click, Drag, Group, Key, Match, Screen#, Keychord
 from libqtile.lazy import lazy
+from libqtile.command import lazy
 from libqtile.utils import guess_terminal
-from typing import List  # noqa: F401from typing import List  # noqa: F401
-from spotify import Spotify
+
+import os
+
+# Colours for all document (IMPORTANT!!!!)
+colour_one='e659a9'
+colour_two='ffffff'
+colour_three='66284B' #colores Rosa Original
+colour_four='eaa1ca'
+colour_bg='282a36'
+
+#colour_one='00B3AF'
+#colour_two='ffffff'
+#colour_three='007F7D'
+#colour_four='4DFFFC'
+#colour_bg='282a36'
+
+# fonsize for all document
+font_size_b2=16
+font_size=13
+icon_size=40
+group_box_size=20
 
 
-if qtile.core.name == "x11":
-    term = "urxvt"
-elif qtile.core.name == "wayland":
-    term = "foot"
+# generate triangles for top bar
+def geneate_triangle_one():
+    return widget.TextBox(
+        text='',
+        padding=-6,
+        fontsize=icon_size,
+        foreground=colour_one,
+        background=colour_two,
+        margin_x=0,
+        margin_y=-5,
+    )
 
-mod = "mod4"              # Sets mod key to SUPER/WINDOWS
-myTerm = "alacritty"      # My terminal of choice
-myBrowser = "firefox"  # My browser of choice
+
+def geneate_triangle_two():
+    return widget.TextBox(
+        text='',
+        padding=-6,
+        fontsize=icon_size,
+        foreground=colour_two,
+        background=colour_one,
+        margin_x=0,
+        margin_y=-5,
+    )
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+                            #basics
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+mod = "mod4"
+terminal = "wezterm"
+browser = "brave"
+scrnsht = "spectacle"
 
 keys = [
-    ### The essentials
-    Key([mod], "Return",
-        lazy.spawn(myTerm),
-        desc='Launches My Terminal'
-        ),
-    Key([mod], "o",
-        lazy.spawn("rofi -show drun"),
-        desc='Run Launcher'
-        ),
-    Key([mod, "shift"], "n",
-        lazy.spawn("rofi-wifi-menu.sh"),
-        desc='Run Launcher'
-        ),    
-    Key([mod], "b",
-        lazy.spawn(myBrowser),
-        desc='Qutebrowser'
-        ),
-    Key([mod], "Tab",
-        lazy.next_layout(),
-        desc='Toggle through layouts'
-        ),
-    Key([mod], "q",
-        lazy.window.kill(),
-        desc='Kill active window'
-        ),
-    Key([mod, "shift"], "r",
-        lazy.restart(),
-        desc='Restart Qtile'
-        ),
-    Key([mod, "shift"], "q",
-        lazy.shutdown(),
-        desc='Shutdown Qtile'
-        ),
-    Key([mod], "e",
-        lazy.spawn("thunar"),
-        desc='launch thunar'
-        ),
-    Key([mod], "x",
-        lazy.spawn("rofi -show power-menu -modi power-menu:rofi-power-menu"),
-        desc='launch rofi power menu'
-        ),
+    # Switch between windows
+    Key([mod], "j", lazy.layout.left(), desc="Move focus to left"),
+    Key([mod], "l", lazy.layout.right(), desc="Move focus to right"),
+    Key([mod], "k", lazy.layout.down(), desc="Move focus down"),
+    Key([mod], "i", lazy.layout.up(), desc="Move focus up"),
+    Key([mod], "b", lazy.layout.next(),
+        desc="Move window focus to other window"),
 
-    ### Media and Brightness Keys
-    Key([], "XF86AudioRaiseVolume",
-        lazy.spawn("amixer set Master 5%+"),
-        desc='Function Key'
-        ),
-    Key([], "XF86AudioLowerVolume",
-        lazy.spawn("amixer set Master 5%-"),
-        desc='Function Key'
-        ),
-    Key([], "XF86AudioPlay",
-        lazy.spawn("playerctl --player=spotify,%any play-pause"),
-        desc='Function Key'
-        ),
-    Key([], "XF86AudioNext",
-        lazy.spawn("playerctl --player=spotify,%any next"),
-        desc='Function Key'
-        ),
-    Key([], "XF86AudioPrev",
-        lazy.spawn("playerctl --player=spotify,%any previous"),
-        desc='Function Key'
-        ),
-    Key([], "XF86MonBrightnessUp",
-        lazy.spawn("brightnessctl s 20+"),
-        desc='Function Key'
-        ),
-    Key([], "XF86MonBrightnessDown",
-        lazy.spawn("brightnessctl s 20-"),
-        desc='Function Key'
-        ),
+    # Move windows between left/right columns or move up/down in current stack.
+    # Moving out of range in Columns layout will create new column.
+    Key([mod, "shift"], "j", lazy.layout.shuffle_left(),
+        desc="Move window to the left"),
+    Key([mod, "shift"], "l", lazy.layout.shuffle_right(),
+        desc="Move window to the right"),
+    Key([mod, "shift"], "k", lazy.layout.shuffle_down(),
+        desc="Move window down"),
+    Key([mod, "shift"], "i", lazy.layout.shuffle_up(), desc="Move window up"),
 
-        
-    Key([], "Print",
-        lazy.spawn("flameshot gui"),
-        desc='Function Key'
-        ),
+    # Grow windows. If current window is on the edge of screen and direction
+    # will be to screen edge - window would shrink.
+    Key([mod, "control"], "j", lazy.layout.grow_left(),
+        desc="Grow window to the left"),
+    Key([mod, "control"], "l", lazy.layout.grow_right(),
+        desc="Grow window to the right"),
+    Key([mod, "control"], "k", lazy.layout.grow_down(),
+        desc="Grow window down"),
+    Key([mod, "control"], "i", lazy.layout.grow_up(), desc="Grow window up"),
+    Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
 
-    ### Switch focus to specific monitor (out of three)
-    Key([mod], "w",
-        lazy.to_screen(0),
-        desc='Keyboard focus to monitor 1'
-        ),
-    #Key([mod], "e",
-    #    lazy.to_screen(1),
-    #    desc='Keyboard focus to monitor 2'
-    #    ),
-    Key([mod], "r",
-        lazy.to_screen(2),
-        desc='Keyboard focus to monitor 3'
-        ),
-    ### Switch focus of monitors
-    Key([mod], "period",
-        lazy.next_screen(),
-        desc='Move focus to next monitor'
-        ),
-    Key([mod], "comma",
-        lazy.prev_screen(),
-        desc='Move focus to prev monitor'
-        ),
-    ### Treetab controls
-    Key([mod, "shift"], "h",
-        lazy.layout.move_left(),
-        desc='Move up a section in treetab'
-        ),
-    Key([mod, "shift"], "l",
-        lazy.layout.move_right(),
-        desc='Move down a section in treetab'
-        ),
-    ### Window controls
-    Key([mod], "j",
-        lazy.layout.down(),
-        desc='Move focus down in current stack pane'
-        ),
-    Key([mod], "k",
-        lazy.layout.up(),
-        desc='Move focus up in current stack pane'
-        ),
-    Key([mod, "shift"], "j",
-        lazy.layout.shuffle_down(),
-        lazy.layout.section_down(),
-        desc='Move windows down in current stack'
-        ),
-    Key([mod, "shift"], "k",
-        lazy.layout.shuffle_up(),
-        lazy.layout.section_up(),
-        desc='Move windows up in current stack'
-        ),
-    Key([mod], "h",
-        lazy.layout.shrink(),
-        lazy.layout.decrease_nmaster(),
-        desc='Shrink window (MonadTall), decrease number in master pane (Tile)'
-        ),
-    Key([mod], "l",
-        lazy.layout.grow(),
-        lazy.layout.increase_nmaster(),
-        desc='Expand window (MonadTall), increase number in master pane (Tile)'
-        ),
-    Key([mod], "n",
-        lazy.layout.normalize(),
-        desc='normalize window size ratios'
-        ),
-    Key([mod], "m",
-        lazy.layout.maximize(),
-        desc='toggle window between minimum and maximum sizes'
-        ),
-    Key([mod], "Space",
-        lazy.window.toggle_floating(),
-        desc='toggle floating'
-        ),
-    Key([mod], "f",
-        lazy.window.toggle_fullscreen(),
-        desc='toggle fullscreen'
-        ),
-    ### Stack controls
-    Key([mod, "shift"], "Tab",
-        lazy.layout.rotate(),
-        lazy.layout.flip(),
-        desc='Switch which side main pane occupies (XmonadTall)'
-        ),
-    Key([mod, "shift"], "space",
-        lazy.layout.toggle_split(),
-        desc='Toggle between split and unsplit sides of stack'
-        ),
-    ### Shortcuts 
-        Key([mod, "shift"], "m",
-        lazy.spawn("flatpak run com.spotify.Client"),
-        desc='Open Spotify'
-        )
+    # Toggle between split and unsplit sides of stack.
+    # Split = all windows displayed
+    # Unsplit = 1 window displayed, like Max layout, but still with
+    # multiple stack panes
+    Key([mod], "Space", lazy.window.toggle_floating(),
+        desc="Toggle between tiled and flotating"),
+    Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
+
+    #-------------------------------------------------------------------------------------------------------------------------------------------------------
+                    # keymaps for Apps
+    #-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    # keymap rofi menu
+    Key([mod], "o", lazy.spawn("rofi -show drun -theme ~/.config/rofi/config.rasi"),desc="launch rofi app launcher"),
+
+    # keymap xkill
+    Key([mod], "F4", lazy.spawn("xkill"), desc="launch xkill"),
+
+    # keymap min web browser
+    Key([mod], "b", lazy.spawn(browser), desc="launch web browser"),
+
+    # keymap Thunar
+    Key([mod], "e", lazy.spawn("thunar"), desc="launch Thunar file manager"),
+
+    # keymap scrot
+    Key ([],"Print", lazy.spawn(scrnsht)),
+
+    # keymap for fullscreen
+    Key([mod], "f", lazy.window.toggle_fullscreen()),
+
+    #-------------------------------------------------------------------------------------------------------------------------------------------------------
+                    # multimedia Keys
+    #-------------------------------------------------------------------------------------------------------------------------------------------------------
+    # Volume
+    Key([], "XF86AudioLowerVolume", lazy.spawn(" pactl set-sink-volume @DEFAULT_SINK@ -5%"), desc="lower volume "),
+    Key([], "XF86AudioRaiseVolume", lazy.spawn(" pactl set-sink-volume @DEFAULT_SINK@ +5%"), desc="Raise volume "),
+    # Mute/unmute
+    Key([], "XF86AudioMute", lazy.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle"), desc="Mute the volume"),
+    Key([], "XF86AudioStop", lazy.spawn("pactl set-source-mute @DEFAULT_SINK@ toggle"), desc="Mute the microphone"),
+    # Play | Prev/next
+    Key([], "XF86AudioPlay", lazy.spawn("playerctl play-pause"), desc="Play/Pause player"),
+    Key([], "XF86AudioNext", lazy.spawn("playerctl next"), desc="Skip to next"),
+    Key([], "XF86AudioPrev", lazy.spawn("playerctl previous"), desc="Skip to previous"),
+
+
+
+    # keymap layout for app launch (not use them!)
+    Key([mod], "x", lazy.spawn("rofi -show power-menu -modi power-menu:rofi-power-menu"), desc="launch rofi power menu"),
+
+    # keymap layout for app launch (not use them!)
+    #Key([mod], "", lazy.spawn(""), desc="launch "),
+
+    # Toggle between different layouts as defined below
+    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
+    Key([mod], "q", lazy.window.kill(), desc="Kill focused window"),
+
+    Key([mod, "control"], "r", lazy.restart(), desc="Restart Qtile"),
+    Key([mod, "shift"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
+    #Key([mod], "r", lazy.spawncmd(), desc="Spawn a command using a prompt widget"),
 ]
 
-groups = [Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='monadtall'),
-          Group("", layout='floating')]
 
-# Allow MODKEY+[0 through 9] to bind to groups, see https://docs.qtile.org/en/stable/manual/config/groups.html
-# MOD4 + index Number : Switch to Group[index]
-# MOD4 + shift + index Number : Send active window to another Group
-dgroups_key_binder = simple_key_binder("mod4")
+groups = [Group(i) for i in [
 
-layout_theme = {"border_width": 2,
-                "margin": 8,
-                "border_focus": "#ebdbb2",
-                "border_normal": "#458588"
-                }
+    "  ","  ","  "," 󰓇 󰙯 ","  ","  ","  ","  ","  ",
+
+    ]]
+
+for i, group in enumerate(groups):
+    numEsc = str(i+1)
+    keys.extend([
+        # mod1 + letter of group = switch to group
+        Key([mod], numEsc, lazy.group[group.name].toscreen(),
+            desc="Switch to group {}".format(group.name)),
+
+        # mod1 + shift + letter of group = switch to & move focused window to group
+        Key([mod, "shift"], numEsc, lazy.window.togroup(group.name, switch_group=True),
+            desc="Switch to & move focused window to group {}".format(group.name)),
+        # Or, use below if you prefer not to switch to that group.
+        # # mod1 + shift + letter of group = move focused window to group
+        # Key([mod, "shift"], i.name, lazy.window.togroup(i.name),
+        #     desc="move focused window to group {}".format(i.name)),
+    ])
 
 layouts = [
-    layout.MonadWide(**layout_theme),
-    #layout.Bsp(**layout_theme),
-    #layout.Stack(stacks=2, **layout_theme),
-    layout.Columns(border_on_single="true", **layout_theme),
-    #layout.RatioTile(**layout_theme),
-    #layout.Tile(shift_windows=True, **layout_theme),
-    #layout.VerticalTile(**layout_theme),
-    #layout.Matrix(**layout_theme),
-    #layout.Zoomy(**layout_theme),
-    #layout.MonadTall(**layout_theme),
-    layout.Max(**layout_theme),
-    #   layout.Stack(num_stacks=2),
-    #layout.RatioTile(**layout_theme),
-    # layout.TreeTab(
-    #      font = "Ubuntu",
-    #      fontsize = 10,
-    #      sections = ["FIRST", "SECOND", "THIRD", "FOURTH"],
-    #      section_fontsize = 10,
-    #      border_width = 2,
-    #      bg_color = "1c1f24",
-    #      active_bg = "c678dd",
-    #      active_fg = "000000",
-    #      inactive_bg = "a9a1e1",
-    #      inactive_fg = "1c1f24",
-    #      padding_left = 0,
-    #      padding_x = 0,
-    #      padding_y = 5,
-    #      section_top = 10,
-    #      section_bottom = 20,
-    #      level_shift = 8,
-    #      vspace = 3,
-    #      panel_width = 200
-    #      ),
+    layout.Columns(
+        border_focus=colour_one,
+        border_normal=colour_three,
+        border_width=5,
+        margin=6,
+        margin_on_single=15,
+        border_on_single="true",
+    ),
+    layout.MonadWide(
+        border_focus=colour_one,
+        border_normal=colour_three,
+        border_width=5,
+        margin=6,
+    ),
+    layout.Max(
+        border_focus=colour_one,
+        border_normal=colour_three,
+        border_with=5,
+        margin=6,
+    ),
+    # Try more layouts by unleashing below layouts.
+    #layout.Stack(num_stacks=3),
+    # layout.Bsp(),
+    # layout.Matrix(),
+    # layout.MonadTall(),
+
+    # layout.RatioTile(),
+    # layout.Tile(),
+    # layout.TreeTab(),
+    # layout.VerticalTile(),
+    # layout.Zoomy(),
+
 ]
 
-colors = [["#282828", "#282828"],#0
-          ["#32302f", "#32302f"],#1
-          ["#ebdbb2", "#ebdbb2"],#2
-          ["#ff6c6b", "#ff6c6b"],#3
-          ["#b8bb26", "#b8bb26"],#4
-          ["#fabd2f", "#fabd2f"],#5
-          ["#b16286", "#b16286"],#6
-          ["#458588", "#458588"],#7
-          ["#3c3836", "#3c3836"],#8
-          ["#00000000", "#00000000"]]#9
-
-prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
-
-##### DEFAULT WIDGET SETTINGS #####
 widget_defaults = dict(
-    font="FiraCode Nerd Font Bold",
-    fontsize=12,
-    padding=2,
-    background=colors[2]
+    font='Fira Code Nerd Font',
+    fontsize=16,
+    padding=4,
 )
 extension_defaults = widget_defaults.copy()
 
-
-def init_widgets_list():
-    widgets_list = [
-        widget.Sep(
-            linewidth=0,
-            padding=10,
-            foreground=colors[2],
-            background=colors[5]
-        ),
-        # widget.Image(
-        #     filename="~/.config/qtile/icons/fedora.png",
-        #     scale="True",
-        #     mouse_callbacks={'Button1': lambda: qtile.cmd_spawn("rofi -show drun")},
-        #     background=colors[5],
-        #     margin=4
-        # ),
-        widget.TextBox(
-            text='',
-            font="Font Awesome 6 Free",
-            mouse_callbacks={'Button1': lambda: qtile.cmd_spawn("rofi -show drun")},
-            background=colors[5],
-            foreground=colors[0],
-            padding=4,
-            fontsize=16,
-        ),
-
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[0],
-            foreground=colors[5],
-            padding=0,
-            fontsize=30,
-        ),
+screens = [
+    Screen(
+        top=bar.Bar(
+            [
+                #widget.CurrentLayout(),
+                widget.TextBox(
+                    text='',
+                    padding=10,
+                    fontsize=group_box_size,
+                    foreground=colour_one,
+                    background=colour_two,
+                ),
+                widget.GroupBox(
+                    active=colour_one,
+                    inactive=colour_two,
+                    borderwidth=1,
+                    disable_drag=True,
+                    fontsize=group_box_size,
+                    highlight_method='line',
+                    highlight_color=[colour_bg, colour_one],
+                    margin_x=0,
+                    margin_y=5,
+                    other_screen_border=colour_four,
+                    other_current_screen_border=colour_three,
+                    padding_x=0,
+                    padding_y=0,
+                    block_highlight_text_color=colour_two,
+                    this_current_screen_border=colour_one,
+                    this_screen_border=colour_four,
+                    urgent_alert_method='block',
+                    urgent_border=colour_one,
+                ),
                 widget.Sep(
-            linewidth=0,
-            padding=8,
-            foreground=colors[2],
-            background=colors[0]
+                    padding=10,
+                    linewidth=3,
+                    foreground=colour_one,
+                ),
+                widget.WindowName(
+                    foreground=colour_two,
+                    format='{name}',
+        		    fontsize=16,
+                    font='Roboto Slab',
+                ),
+                widget.TextBox(
+	                text='',
+	                padding=-6,
+                    fontsize=icon_size,
+                    foreground=colour_one,
+                    margin_x=0,
+                    margin_y=-5,
+	            ),
+                widget.TextBox(
+                    text='Vol:',
+                    font='Roboto Slab',
+                    background=colour_one,
+                    foreground=colour_two,
+		            fontsize=font_size,
+		        ),
+                widget.PulseVolume(
+                    font='Roboto Slab',
+                    background=colour_one,
+                    foreground=colour_two,
+        		    fontsize=font_size,
+                    update_interval=0.1,
+                ),
+                geneate_triangle_two(),
+                widget.TextBox(
+                    text='󰲝',
+                    background=colour_two,
+                    foreground=colour_one,
+                    fontsize=font_size,
+                ),
+                widget.Net(
+                    background=colour_two,
+                    foreground=colour_one,
+                    font='Roboto Slab',
+                    fontsize=font_size,
+                    format='{down} ↓↑ {up}',
+                ),
+
+                geneate_triangle_one(),
+                widget.OpenWeather(
+                    font='Roboto Slab',
+                    app_key='4622c141c797366c3a7a1aa0de00c7b0',
+                    foreground=colour_two,
+                    background=colour_one,
+                    fontsize=font_size,
+                    location='Bogotá',
+                    format='{icon} {location_city}: {main_temp} °{units_temperature} {weather_details}',
+                    language='es',
+                ),
+                geneate_triangle_two(),
+                widget.Memory(
+                    font='Roboto Slab',
+                    background=colour_two,
+                    foreground=colour_one,
+                    format='{MemUsed: .0f}{mm}/{MemTotal: .0f}{mm}',
+		            fontsize=font_size,
+                ),
+                geneate_triangle_one(),
+                widget.TextBox(
+                    text='',
+                    background=colour_one,
+                    foreground=colour_two,
+        		    fontsize=font_size,
+                ),
+                widget.Clock(
+                    #format='%a %d de %b. %I:%M %p ',
+                    format='%d/%m/%y %I:%M %P',
+                    background=colour_one,
+                    font='Roboto Slab',
+                    fontsize=font_size,
+                    foreground=colour_two
+                ),
+            ],
+            24,
+            background=colour_bg,
         ),
-        widget.GroupBox(
-            font="Font Awesome 6 Free",
-            fontsize=12,
-            margin_y=3,
-            margin_x=0,
-            padding_y=5,
-            padding_x=1,
-            borderwidth=1,
-            active=colors[2],
-            inactive=colors[7],
-            rounded=False,
-            highlight_color=colors[1],
-            highlight_method="line",
-            this_current_screen_border=colors[5],
-            this_screen_border=colors[4],
-            other_current_screen_border=colors[2],
-            other_screen_border=colors[4],
-            foreground=colors[2],
-            background=colors[0]
+    ),
+    Screen(
+        top=bar.Bar(
+            [
+                #widget.CurrentLayout(),
+                widget.TextBox(
+                    text='',
+                    padding=10,
+                    fontsize=group_box_size,
+                    foreground=colour_one,
+                    background=colour_two,
+                ),
+                widget.GroupBox(
+                    active=colour_one,
+                    borderwidth=1,
+                    disable_drag=True,
+                    fontsize=group_box_size,
+                    inactive=colour_two,
+                    highlight_method='block',
+                    margin_x=0,
+                    margin_y=5,
+                    other_screen_border=colour_four,
+                    other_current_screen_border=colour_three,
+                    padding_x=0,
+                    padding_y=0,
+                    block_highlight_text_color=colour_two,
+                    this_current_screen_border=colour_one,
+                    this_screen_border=colour_four,
+                    urgent_alert_method='block',
+                    urgent_border=colour_one,
+                ),
+                widget.Sep(
+                    padding=10,
+                    linewidth=3,
+                    foreground=colour_one,
+                ),
+                widget.WindowName(
+                    foreground=colour_two,
+                    format='{name}',
+        		    fontsize=16,
+                    font='Roboto Slab',
+                ),
+                widget.TextBox(
+	                text='',
+	                padding=-6,
+                    fontsize=icon_size,
+                    foreground=colour_one,
+                    margin_x=0,
+                    margin_y=-5,
+	            ),
+                widget.Systray(
+                    padding=10,
+                    background=colour_one,
+                    foreground=colour_two
+                ),
+                widget.TextBox(
+                    text='Vol:',
+                    font='Roboto Slab',
+                    background=colour_one,
+                    foreground=colour_two,
+		            fontsize=font_size_b2,
+		        ),
+                widget.PulseVolume(
+                    font='Roboto Slab',
+                    background=colour_one,
+                    foreground=colour_two,
+        		    fontsize=font_size_b2,
+                    update_interval=0.1,
+                ),
+                geneate_triangle_two(),
+                widget.TextBox(
+                    text='󰲝',
+                    background=colour_two,
+                    foreground=colour_one,
+                    fontsize=font_size_b2,
+                ),
+                widget.Net(
+                    background=colour_two,
+                    foreground=colour_one,
+                    font='Roboto Slab',
+                    fontsize=font_size_b2,
+                    format='{down} ↓↑ {up}',
+                ),
+
+                geneate_triangle_one(),
+                widget.OpenWeather(
+                    font='Roboto Slab',
+                    app_key='4622c141c797366c3a7a1aa0de00c7b0',
+                    foreground=colour_two,
+                    background=colour_one,
+                    fontsize=font_size_b2,
+                    location='Bogotá',
+                    format='{icon} {location_city}: {main_temp} °{units_temperature} {weather_details}',
+                    language='es',
+                ),
+                geneate_triangle_two(),
+                widget.Memory(
+                    font='Roboto Slab',
+                    background=colour_two,
+                    foreground=colour_one,
+                    format='{MemUsed: .0f}{mm}/{MemTotal: .0f}{mm}',
+		            fontsize=font_size_b2,
+                ),
+                geneate_triangle_one(),
+                widget.TextBox(
+                    text='',
+                    background=colour_one,
+                    foreground=colour_two,
+        		    fontsize=font_size_b2,
+                ),
+                widget.Clock(
+                    #format='%a %d de %b. %I:%M %p ',
+                    format='%d/%m/%y %I:%M %P',
+                    background=colour_one,
+                    font='Roboto Slab',
+                    fontsize=font_size_b2,
+                    foreground=colour_two
+                ),
+            ],
+            24,
+            background=colour_bg,
         ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[7],
-            foreground=colors[0],
-            padding=0,
-            fontsize=30,
-        ),
-        widget.CurrentLayout(
-            fmt=' {}',
-            foreground=colors[2],
-            background=colors[7],
-            padding=5
-        ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[2],
-            foreground=colors[7],
-            padding=0,
-            fontsize=30,
-        ),
-        widget.WindowName(
-            foreground=colors[0],
-            background=colors[2],
-            padding=8,
-            max_chars=40,
-            width=300
-        ),
-        widget.Sep(
-            linewidth=0,
-            padding=0,
-            foreground=colors[0],
-            background=colors[0]
-        ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[0],
-            foreground=colors[2],
-            padding=0,
-            fontsize=37
-        ),
-        widget.Spacer(
-            background=colors[0]
-        ),
-        widget.Sep(
-            linewidth=0,
-            padding=6,
-            foreground=colors[0],
-            background=colors[0]
-        ),
-        Spotify(
-            background=colors[0],
-            foreground=colors[2]
-        ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[0],
-            foreground=colors[2],
-            padding=0,
-            fontsize=37
-        ),
-        widget.Memory(
-            foreground=colors[0],
-            background=colors[2],
-            mouse_callbacks={
-                'Button1': lambda: qtile.cmd_spawn(myTerm)},
-            fmt='Mem:{}',
-            measure_mem='G',
-            padding=5
-        ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[2],
-            foreground=colors[7],
-            padding=0,
-            fontsize=30
-        ),
-        widget.Volume(
-            foreground=colors[2],
-            background=colors[7],
-            fmt='Vol:{} ',
-            padding=5
-        ),
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font",
-            background=colors[7],
-            foreground=colors[0],
-            padding=0,
-            fontsize=30
-        ),
-        widget.Clock(
-            foreground=colors[2],
-            background=colors[0],
-            format="%H:%M %d "
-        ), 
-        ### Battery 
-        widget.TextBox(
-            text='',
-            font="FiraCode Nerd Font Mono",
-            background=colors[0],
-            foreground=colors[5],
-            padding=0,
-            fontsize=30
-        ),
-        #widget.Battery(
-        #    foreground=colors[0],
-        #    background=colors[5],
-        #    format='{percent:2.0%} ',
-        #    padding=2
-        #),
-        widget.Systray(
-            foreground=colors[0],
-            background=colors[5],
-            padding=2
-        )
-    ]
-    return widgets_list
+    ),
+]
 
-
-
-def init_widgets_screen1():
-    widgets_screen1 = init_widgets_list()
-    del widgets_screen1[21:22]               # Slicing removes unwanted widgets (systray) on Monitors 1,3
-    return widgets_screen1
-
-def init_widgets_screen2():
-    widgets_screen2 = init_widgets_list()
-    return widgets_screen2                 # Monitor 2 will display all widgets in widgets_list
-
-
-
-def init_screens():
-    return [Screen(top=bar.Bar(widgets=init_widgets_screen1(), opacity=1.0, size=30)),
-            Screen(top=bar.Bar(widgets=init_widgets_screen2(), opacity=1.0, size=30))]
-
-
-if __name__ in ["config", "__main__"]:
-    screens = init_screens()
-    widgets_list = init_widgets_list()
-    widgets_screen1 = init_widgets_screen1()
-    widgets_screen2 = init_widgets_screen2()
-
-
-def window_to_prev_group(qtile):
-    if qtile.currentWindow is not None:
-        i = qtile.groups.index(qtile.currentGroup)
-        qtile.currentWindow.togroup(qtile.groups[i - 1].name)
-
-
-def window_to_next_group(qtile):
-    if qtile.currentWindow is not None:
-        i = qtile.groups.index(qtile.currentGroup)
-        qtile.currentWindow.togroup(qtile.groups[i + 1].name)
-
-
-def window_to_previous_screen(qtile):
-    i = qtile.screens.index(qtile.current_screen)
-    if i != 0:
-        group = qtile.screens[i - 1].group.name
-        qtile.current_window.togroup(group)
-
-
-def window_to_next_screen(qtile):
-    i = qtile.screens.index(qtile.current_screen)
-    if i + 1 != len(qtile.screens):
-        group = qtile.screens[i + 1].group.name
-        qtile.current_window.togroup(group)
-
-
-def switch_screens(qtile):
-    i = qtile.screens.index(qtile.current_screen)
-    group = qtile.screens[i - 1].group
-    qtile.current_screen.set_group(group)
-
-
+# Drag floating layouts.
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(),
          start=lazy.window.get_position()),
@@ -524,22 +467,24 @@ mouse = [
     Click([mod], "Button2", lazy.window.bring_to_front())
 ]
 
+dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
 follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = False
-
 floating_layout = layout.Floating(
     float_rules=[
     *layout.Floating.default_float_rules,
-    Match(title='Confirmation'),      # tastyworks exit box
-    Match(title='Qalculate!'),        # qalculate-gtk
-    Match(wm_class='kdenlive'),       # kdenlive
-    Match(wm_class='pinentry'),  # GPG key password entry
+    Match(wm_class='confirmreset'),  # gitk
+    Match(wm_class='makebranch'),  # gitk
+    Match(wm_class='maketag'),  # gitk
+    Match(wm_class='ssh-askpass'),  # ssh-askpass
+    Match(title='branchdialog'),  # gitk
+    Match(title='pinentry'),  # GPG key password entry
     ],
-    border_width=2,
-    border_focus='ebdbb2',
-    border_normal='458588'
+    border_focus=colour_one,
+    border_normal=colour_three,
+    border_width=5,
 )
 auto_fullscreen = True
 focus_on_window_activation = "smart"
@@ -549,23 +494,28 @@ reconfigure_screens = True
 # focus, should we respect this or not?
 auto_minimize = True
 
+# XXX: Gasp! We're lying here. In fact, nobody really uses or cares about this
+# string besides java UI toolkits; you can see several discussions on the
+# mailing lists, GitHub issues, and other WM documentation that suggest setting
+# this string if your java app doesn't work correctly. We may as well just lie
+# and say that we're a working one by default.
+#
+# We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
+# java that happens to be on java's whitelist.
+wmname = "LG3D"
 
-@hook.subscribe.startup_once
-def start_once():
-    home = os.path.expanduser('~')
-    subprocess.call([home + '/.config/qtile/autostart.sh'])
 
 
-wmname = "Qtile"
+##### STARTUP PROGRAMS #####
 
+cmd=[
+        "sh /home/exa/discos/d/linux-base/base-conf/autostart.sh",
+        "picom &",
+        "nm-applet &",
+        "setxkbmap latam",
+        "dunst &",
+        "nitrogen --restore &",
+    ]
 
-start = [
-    "setxkbmap latam",
-    "nitrogen --restore",
-    "picom &",
-    "nm-applet &",
-]
-
-for x in start:
+for x in cmd:
     os.system(x)
-
