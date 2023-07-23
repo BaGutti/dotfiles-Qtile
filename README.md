@@ -15,6 +15,7 @@ ncurses lib32-ncurses ocl-icd lib32-ocl-icd libxslt lib32-libxslt libva lib32-li
 lib32-gtk3 gst-plugins-base-libs lib32-gst-plugins-base-libs vulkan-icd-loader lib32-vulkan-icd-loader lutris \
 discord discord-screenaudio heroic-games-launcher-bin protonup-qt 
 ```
+Dependencies for screen config (In GUI)
 ```bash
 paru -S arandr 
 ```
