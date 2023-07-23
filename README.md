@@ -19,3 +19,8 @@ Dependencies for screen config (In GUI)
 ```bash
 paru -S arandr 
 ```
+Installing the config:
+```bash
+cp -r dotfiles ~/.config/
+```
+Make necessarie changes in `.config/qtile/config.py`
