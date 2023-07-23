@@ -1,4 +1,4 @@
-# Qtile GruvBox
+# Qtile Pink-dracula
 ## How to install
 install dependencies, e.g on Arch
 ```bash
