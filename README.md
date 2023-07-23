@@ -26,4 +26,4 @@ Installing the config:
 ```bash
 cp -r dotfiles ~/.config/
 ```
-Make necessarie changes in `.config/qtile/config.py`
+Make the necessary changes in`.config/qtile/config.py`
