@@ -1,4 +1,5 @@
 # Qtile GruvBox
+<img src="https://github.com/Aylur/dotfiles/blob/eww/assets/hyprland.png](https://github.com/BaGutti/dotfiles/blob/qtile-gruvbox/source/2023-07-22_19-45.png">
 ## How to install
 install dependencies, e.g on Arch
 ```bash
