@@ -6,7 +6,7 @@
 install dependencies, e.g on Arch
 ```bash
 paru -S rofi-wifi-menu rofi-polkit-agent-git qtile firefox rofi playerctl brightnessctl pavucontrol \
-lxappearance network-manager-applet flameshot dunst nitrogen picom 
+lxappearance network-manager-applet flameshot dunst nitrogen picom neofetch
 ```
 Dependencies for gaming (Optional)
 ```bash
