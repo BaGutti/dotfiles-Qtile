@@ -1507,7 +1507,7 @@ schemes:
       cyan:    '0x00ffff'
       white:   '0xffffff'
 
-colors: *gruvbox_dark_personal
+colors: *dracula
 
 
 
