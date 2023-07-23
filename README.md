@@ -1,4 +1,7 @@
 # Qtile Pink-dracula
+
+<img src="https://github.com/BaGutti/dotfiles/blob/qtile-pink/source/pink.png">
+
 ## How to install
 install dependencies, e.g on Arch
 ```bash
