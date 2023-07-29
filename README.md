@@ -23,7 +23,7 @@ paru -S arandr
 ```
 Installing the config:
 ```bash
-cp -r dotfiles ~/.config/
+cp -r dotfiles/* ~/.config/
 ```
 Make the necessary changes in `.config/qtile/config.py`
 
