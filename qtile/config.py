@@ -21,7 +21,7 @@ elif qtile.core.name == "wayland":
     term = "foot"
 
 mod = "mod4"              # Sets mod key to SUPER/WINDOWS
-myTerm = "alacritty"      # My terminal of choice
+myTerm = "kitty"      # My terminal of choice
 myBrowser = "firefox"  # My browser of choice
 
 keys = [
@@ -66,6 +66,12 @@ keys = [
         lazy.spawn("rofi -show power-menu -modi power-menu:rofi-power-menu"),
         desc='launch rofi power menu'
         ),
+    Key([mod], "w",
+        lazy.screen.next_group(),
+        ),
+    Key([mod], "r",
+        lazy.screen.prev_group(),
+        ),
 
     ### Media and Brightness Keys
     Key([], "XF86AudioRaiseVolume",
@@ -89,33 +95,41 @@ keys = [
         desc='Function Key'
         ),
     Key([], "XF86MonBrightnessUp",
-        lazy.spawn("brightnessctl s 20+"),
+        lazy.spawn("brightnessctl s 3+"),
         desc='Function Key'
         ),
     Key([], "XF86MonBrightnessDown",
-        lazy.spawn("brightnessctl s 20-"),
+        lazy.spawn("brightnessctl s 2-"),
         desc='Function Key'
+        ),
+    Key([], "XF86KbdBrightnessUp",
+        lazy.spawn("brightnessctl --device='smc::kbd_backlight' set +5"),
+        desc='Function key'
+        ),
+    Key([], "XF86KbdBrightnessDown",
+        lazy.spawn("brightnessctl --device='smc::kbd_backlight' set 5-"),
+        desc='FunctionKey'
         ),
 
         
-    Key([], "Print",
+    Key([mod, "shift"], "p",
         lazy.spawn("flameshot gui"),
         desc='Function Key'
         ),
 
     ### Switch focus to specific monitor (out of three)
-    Key([mod], "w",
-        lazy.to_screen(0),
-        desc='Keyboard focus to monitor 1'
-        ),
+    #Key([mod], "w",
+    #    lazy.to_screen(0),
+    #    desc='Keyboard focus to monitor 1'
+    #    ),
     #Key([mod], "e",
     #    lazy.to_screen(1),
     #    desc='Keyboard focus to monitor 2'
     #    ),
-    Key([mod], "r",
-        lazy.to_screen(2),
-        desc='Keyboard focus to monitor 3'
-        ),
+    #Key([mod], "r",
+    #    lazy.to_screen(2),
+    #    desc='Keyboard focus to monitor 3'
+    #    ),
     ### Switch focus of monitors
     Key([mod], "period",
         lazy.next_screen(),
@@ -445,12 +459,12 @@ def init_widgets_list():
             padding=0,
             fontsize=30
         ),
-        #widget.Battery(
-        #    foreground=colors[0],
-        #    background=colors[5],
-        #    format='{percent:2.0%} ',
-        #    padding=2
-        #),
+        widget.Battery(
+            foreground=colors[0],
+            background=colors[5],
+            format='{percent:2.0%} ',
+            padding=2
+        ),
         widget.Systray(
             foreground=colors[0],
             background=colors[5],
@@ -463,7 +477,7 @@ def init_widgets_list():
 
 def init_widgets_screen1():
     widgets_screen1 = init_widgets_list()
-    del widgets_screen1[21:22]               # Slicing removes unwanted widgets (systray) on Monitors 1,3
+    #del widgets_screen1[21:22]               # Slicing removes unwanted widgets (systray) on Monitors 1,3
     return widgets_screen1
 
 def init_widgets_screen2():
@@ -551,16 +565,15 @@ auto_minimize = True
 
 
 @hook.subscribe.startup_once
-def start_once():
-    home = os.path.expanduser('~')
-    subprocess.call([home + '/.config/qtile/autostart.sh'])
-
+def autostart():
+    home = os.path.expanduser('~/.config/qtile/autostart.sh') # path to my script, under my user directory
+    subprocess.call([home])
 
 wmname = "Qtile"
 
 
 start = [
-    "setxkbmap latam",
+    "setxkbmap es",
     "nitrogen --restore",
     "picom &",
     "nm-applet &",
