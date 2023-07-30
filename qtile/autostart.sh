@@ -1,1 +1,0 @@
-/home/exa/discos/d/linux-base/base-conf/autostart.sh
